@@ -1,0 +1,47 @@
+{
+  "name": "nodejs-study",
+  "version": "1.0.0",
+  "description": "Summer DI Container",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "author": "Studio XID, Inc.",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@types/jest": "^20.0.4",
+    "jest": "^20.0.4",
+    "reflect-metadata": "^0.1.10"
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.15",
+    "ts-jest": "^20.0.7",
+    "typescript": "^2.4.2"
+  },
+  "globals": {
+    "ts-jest": {
+      "skipBabel": true
+    }
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.tsx?$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testRegex": "src/.*(/__tests__/.*|\\.(test|spec))\\.(tsx?|jsx?)$",
+    "mapCoverage": true,
+    "coverageReporters": [
+      "html",
+      "text"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "json",
+      "jsx"
+    ]
+  }
+}
