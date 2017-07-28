@@ -2,6 +2,7 @@ import * as vm from 'vm';
 import {fork} from 'child_process';
 import {join} from 'path';
 import {EventEmitter} from 'events';
+import {sleep} from './utils/sleep';
 
 describe('vm', () => {
     let buffer: Buffer;
@@ -96,7 +97,6 @@ describe('vm', () => {
         // ipc
         let count = 0;
         const cp = fork(join(__dirname, 'vm-Script-childprocess.js'));
-
         function ipcCallback(resolve: Function): void {
             cp.on('message', (pong) => {
                 if (pong <= LOOP_COUNT) {
@@ -132,6 +132,8 @@ describe('vm', () => {
         const context = vm.createContext(sandbox);
         script.runInContext(context);
 
+        await sleep(300); // wait until warmup child process
+
         // run tests - ipc
         console.time('ipc communication');
         const p1 = new Promise(ipcCallback);
@@ -139,6 +141,7 @@ describe('vm', () => {
         await p1;
         console.timeEnd('ipc communication');
         expect(count).toBe(LOOP_COUNT);
+        cp.kill();
 
         // run tests - vm
         count = 0;

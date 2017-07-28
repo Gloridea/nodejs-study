@@ -1,3 +1,5 @@
+import {sleep} from './utils/sleep';
+
 describe('process.nextTick()', () => {
     it('compares each async call methods', async () => {
         // Given
@@ -40,10 +42,4 @@ describe('process.nextTick()', () => {
             //, '2-setTimeout', '2-immediate' // it comes in random order
         ]);
     });
-
-    async function sleep(time: number): Promise<void> {
-        return new Promise<void>(resolve => {
-            setTimeout(resolve, time);
-        });
-    }
 });
