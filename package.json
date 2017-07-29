@@ -12,8 +12,10 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "@types/jest": "^20.0.4",
+    "@types/jest": "^20.0.5",
+    "@types/node-ipc": "^9.0.0",
     "jest": "^20.0.4",
+    "node-ipc": "^9.1.0",
     "reflect-metadata": "^0.1.10"
   },
   "devDependencies": {
