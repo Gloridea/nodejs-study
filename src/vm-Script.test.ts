@@ -203,6 +203,29 @@ describe('vm', () => {
         // Then
         expect(process.env.TEST).toBe('TEST');
     });
+
+    it('compares performance runInNewContext vs runInThisContext', () => {
+        const code = `
+        for (let i = 0; i < 1000000; i++) {
+            global.count += i * 2;
+        }
+        `;
+        buffer = codeToBuffer(code);
+        const script = new vm.Script(code, {cachedData: buffer});
+        const sandbox = {global: {count: 0}, console};
+        const context = vm.createContext(sandbox);
+
+        console.time('runInContext');
+        script.runInContext(context);
+        console.timeEnd('runInContext');
+
+        (global as any).count = 0;
+        console.time('runInThisContext');
+        script.runInThisContext();
+        console.timeEnd('runInThisContext');
+        delete (global as any).count;
+    });
+
 });
 
 function codeToBuffer(code: string): Buffer {
