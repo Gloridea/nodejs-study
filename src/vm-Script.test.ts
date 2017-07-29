@@ -4,6 +4,7 @@ import {join} from 'path';
 import {EventEmitter} from 'events';
 import {sleep} from './utils/sleep';
 import * as ipc from 'node-ipc';
+import {cp, rm} from 'shelljs';
 
 ipc.config.silent = true;
 
@@ -226,6 +227,29 @@ describe('vm', () => {
         delete (global as any).count;
     });
 
+    it(`doesn't include dependency files`, () => {
+        // Given
+        let isErrorThrown = false;
+        cp(join(__dirname, 'vm-Script-dependency.js'), join(__dirname, 'vm-Script-dependency-copy.js'));
+        const code = `
+            let dep = require('./vm-Script-dependency-copy');
+            dep.increment();
+        `;
+        const buffer = codeToBuffer(code);
+        const script = new vm.Script(code, {cachedData: buffer});
+        const context = vm.createContext({require});
+        rm(join(__dirname, 'vm-Script-dependency-copy.js'));
+
+        // When
+        try {
+            script.runInNewContext(context);
+        } catch (e) {
+            isErrorThrown = true;
+        }
+
+        // Then
+        expect(isErrorThrown).toBe(true);
+    });
 });
 
 function codeToBuffer(code: string): Buffer {
