@@ -4,6 +4,7 @@ import {join} from 'path';
 import {EventEmitter} from 'events';
 import {sleep} from './utils/sleep';
 import * as ipc from 'node-ipc';
+import * as assert from 'assert';
 import {cp, rm} from 'shelljs';
 
 ipc.config.silent = true;
@@ -21,7 +22,7 @@ describe('vm', () => {
         const context = vm.createContext(sandbox);
 
         // When
-        const bufScript = new vm.Script("12345678", {cachedData: buffer});
+        const bufScript = new vm.Script(toDummyCode('count++;'), {cachedData: buffer});
         bufScript.runInContext(context);
 
         // Then
@@ -32,6 +33,8 @@ describe('vm', () => {
         /** NOTE
          * `expected_source_hash` 가 일치하지 않으면 캐시를 사용할 수 없다고 판단한다
          * `pkg-fetch` 는 expected_source_hash 판단 부분을 patch해서 무효화한다
+         * v8 코드에서는 소스코드의 길이로 source_hash를 판단한다
+         * ( https://github.com/DAB0mB/v8/blob/master/src/snapshot/code-serializer.cc#L381 )
          */
         // Given
         const sandbox = {count: 0};
@@ -45,6 +48,14 @@ describe('vm', () => {
         expect(sandbox.count).toBe(10);
     });
 
+    /**
+     * in NodeJS 8.2.1
+     * ---------------
+     * - normal execution: 94.038ms
+     * - eval execution: 73.604ms
+     * - vm execution: 96.497ms
+     * - vm-buffer execution: 87.508ms
+     */
     it('compares pure execution performance', () => {
         const expected = {count: 39999800000, strlen: 2253754};
         let count = 0;
@@ -100,6 +111,13 @@ describe('vm', () => {
         expect({count: sandbox2.count, strlen: sandbox2.str.length}).toEqual(expected);
     });
 
+    /**
+     * in NodeJS 8.2.1
+     * ---------------
+     * - ipc communication: 795.485ms
+     * - inter-vm communication: 18.288ms
+     * - node-ipc communication: 1714.186ms
+     */
     it('compares inter-vm access cost', async function () {
         let cp: ChildProcess | null = null;
         let nicp: ChildProcess | null = null;
@@ -205,6 +223,12 @@ describe('vm', () => {
         expect(process.env.TEST).toBe('TEST');
     });
 
+    /**
+     * in NodeJS 8.2.1
+     * ---------------
+     * - runInContext: 145.475ms
+     * - runInThisContext: 20.952ms
+     */
     it('compares performance runInNewContext vs runInThisContext', () => {
         const code = `
         for (let i = 0; i < 1000000; i++) {
@@ -257,4 +281,11 @@ function codeToBuffer(code: string): Buffer {
         produceCachedData: true
     });
     return Buffer.from((script as any).cachedData as Buffer);
+}
+
+function toDummyCode(code: string): string {
+    const dummyCode = code.replace(/./g, ' ');
+    console.log('Buffer.from(dummyCode).length', Buffer.from(dummyCode).length, dummyCode.length);
+    assert.equal(Buffer.from(dummyCode).length, Buffer.from(code).length);
+    return dummyCode;
 }
