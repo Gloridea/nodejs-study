@@ -204,9 +204,9 @@ describe('vm', () => {
             console.timeEnd('node-ipc communication');
             expect(count).toBe(LOOP_COUNT);
         } finally {
-            cp && cp.kill('SIGHUP');
+            cp && cp.kill('SIGTERM');
             ipc.disconnect('world');
-            nicp && nicp.kill('SIGHUP');
+            nicp && nicp.kill('SIGTERM');
         }
     });
 
