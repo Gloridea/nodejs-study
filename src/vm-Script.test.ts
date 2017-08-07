@@ -16,7 +16,7 @@ describe('vm', () => {
         buffer = codeToBuffer('count++;');
     });
 
-    it('returns buffer', () => {
+    it('creates cached code buffer', () => {
         // Given
         const sandbox = {count: 0};
         const context = vm.createContext(sandbox);
@@ -29,13 +29,21 @@ describe('vm', () => {
         expect(sandbox.count).toBe(1);
     });
 
+    it('uses cachedData if code length is the same even if code contents is not equal', () => {
+        // Given
+        const buffer = codeToBuffer('countA++;');
+        const sandbox = {countA: 0};
+        const context = vm.createContext(sandbox);
+
+        // When
+        const bufScript = new vm.Script('countA--;', {cachedData: buffer});
+        bufScript.runInContext(context);
+
+        // Then
+        expect(sandbox.countA).toBe(1);
+    });
+
     it('does not use cache if script length is not same', () => {
-        /** NOTE
-         * `expected_source_hash` 가 일치하지 않으면 캐시를 사용할 수 없다고 판단한다
-         * `pkg-fetch` 는 expected_source_hash 판단 부분을 patch해서 무효화한다
-         * v8 코드에서는 소스코드의 길이로 source_hash를 판단한다
-         * ( https://github.com/DAB0mB/v8/blob/master/src/snapshot/code-serializer.cc#L381 )
-         */
         // Given
         const sandbox = {count: 0};
         const bufScript = new vm.Script("count += 10", {cachedData: buffer});
@@ -46,6 +54,21 @@ describe('vm', () => {
 
         // Then
         expect(sandbox.count).toBe(10);
+    });
+
+    it(`doesn't use cachedData if same script had been created from the same source before`, () => {
+        // Given
+        const buffer = codeToBuffer('countB++;');
+        const sandbox = {countB: 0};
+        const context = vm.createContext(sandbox);
+        codeToBuffer('countB--;');
+
+        // When
+        const bufScript = new vm.Script("countB--;", {cachedData: buffer});
+        bufScript.runInContext(context);
+
+        // Then
+        expect(sandbox.countB).toBe(-1);
     });
 
     /**
@@ -156,6 +179,7 @@ describe('vm', () => {
             // node-ipc
             nicp = spawn('node', [join(__dirname, 'vm-Script-childprocess-node-ipc.js')]);
             await new Promise(resolve => ipc.connectTo('world', resolve));
+
             function nodeIpcCallback(resolve: Function): void {
                 ipc.of.world.on('pong', (pong: number) => {
                     if (pong <= LOOP_COUNT) {
@@ -274,6 +298,8 @@ describe('vm', () => {
         // Then
         expect(isErrorThrown).toBe(true);
     });
+
+    it.skip('TODO: should inspect cpu features of snapshot');
 });
 
 function codeToBuffer(code: string): Buffer {
@@ -283,9 +309,17 @@ function codeToBuffer(code: string): Buffer {
     return Buffer.from((script as any).cachedData as Buffer);
 }
 
-function toDummyCode(code: string): string {
-    const dummyCode = code.replace(/./g, ' ');
+function toDummyCode(code: string, replacer = ' '): string {
+    const dummyCode = code.replace(/./g, replacer);
     console.log('Buffer.from(dummyCode).length', Buffer.from(dummyCode).length, dummyCode.length);
     assert.equal(Buffer.from(dummyCode).length, Buffer.from(code).length);
+    console.log('  [%s](%d)\n=>[%s](%d)', code, code.length, dummyCode, dummyCode.length);
     return dummyCode;
 }
+
+function formatBuffer(buffer: Buffer): string {
+    return buffer.toString('hex')
+        .replace(/(.{56})/g, '$1\n')
+        .replace(/(\w{2})/g, '$1 ');
+}
+formatBuffer; // NOTE: to prevent tslint warning
