@@ -140,6 +140,9 @@ describe('vm', () => {
      * - ipc communication: 795.485ms
      * - inter-vm communication: 18.288ms
      * - node-ipc communication: 1714.186ms
+     *
+     * (reference)
+     * - electron ipc communication: 2689ms
      */
     it('compares inter-vm access cost', async function () {
         let cp: ChildProcess | null = null;
